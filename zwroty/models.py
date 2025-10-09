@@ -48,7 +48,7 @@ class Product(models.Model):
     sku = models.ForeignKey("SkuInformation", on_delete=models.CASCADE, null=True)
     quantity = models.IntegerField()
     actual_barcode = models.CharField(max_length=20)
-    date_time_recive = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    date_time_recive = models.DateTimeField(null=True, blank=True)
 
     
     reasone = models.ForeignKey(ReasoneComment, on_delete=models.CASCADE)

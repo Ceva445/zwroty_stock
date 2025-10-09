@@ -19,43 +19,59 @@
                         <tr>
                             <th>Id</th>
                             <th>Data Przyjęcia</th>
+                            <th>Pierwsza linia</th>
+                            <th>Ostatnia linia</th>
                             <th>Bon wyjścia</th>
-                            <th>Numer wuzetki</th>  
+                            <th>Numer wuzetki</th>
                             <th>Sklep</th>
                             <th>Status</th>
                             <th>Typ nośnika</th>
                             <th>Ostatnia aktualizacja przez</th>
-                        </tr> 
-                        <tbody>
-                            {% for order in order_list %}
-                            <tr>
+                        </tr>
+                    <tbody>
+                    {% for order in order_list %}
+                    <tr>
                                 <td><a style="text-decoration:none" 
                                     class="link-dark " 
-                                    href="{% url 'zwroty:return_order_detail' pk=order.id %}">
-                                    {{ order.identifier }}
+                            href="{% url 'zwroty:return_order_detail' pk=order.id %}">
+                            {{ order.identifier }}
                                 </a></td>
-                                <td>{{ order.date_recive|date:"d-m-Y" }}</td> 
-                                <td>{{ order.nr_order }}</td>  
-                                <td>{{ order.position_nr }}</td>  
-                                <td>{{ order.shop.description }}</td>  
-                                <td>
-                                    {% if order.complite_status %}
-                                        Zrobione
-                                    {% else %}
-                                        Nie Zrobione
-                                    {% endif %}
-                                </td>
+                        <td>{{ order.date_recive|date:"d-m-Y" }}</td>
+                        <td>
+                            {% if order.first_product_time %}
+                                {{ order.first_product_time|date:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.last_product_time %}
+                                {{ order.last_product_time|date:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ order.nr_order }}</td>
+                        <td>{{ order.position_nr }}</td>
+                        <td>{{ order.shop.description }}</td>
+                        <td>
+                            {% if order.complite_status %}
+                                Zrobione
+                            {% else %}
+                                Nie Zrobione
+                            {% endif %}
+                        </td>
                                 <td>{% if order.tape_of_delivery == 'paczka' %}
-                                        Paczka
-                                    {% else %}
-                                        Paleta
-                                    {% endif %}
-                                </td>  
-                                <td>{{ order.user }}</td>  
+                                Paczka
+                            {% else %}
+                                Paleta
+                            {% endif %}
+                        </td>
+                        <td>{{ order.user }}</td>
 
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>

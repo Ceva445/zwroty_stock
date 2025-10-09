@@ -22,6 +22,7 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.barcode import code128
+from django.db.models import Min, Max
 
 
 def admin_panel(request):
@@ -132,7 +133,8 @@ class AddProduct(LoginRequiredMixin, View):
                     sku = line["sku"],
                     quantity = line["qty"],
                     reasone = reas_queryset.get(name=line["reas_name"]),
-                    actual_barcode = line["ean"]
+                    actual_barcode = line["ean"],
+                    date_time_recive = line["date_time_recive"],
                 )
                 for line in cache_data
             ])
@@ -155,6 +157,7 @@ class AddProduct(LoginRequiredMixin, View):
                 "reas_name": reas_name, 
                 "sku": sku,
                 "ean": ean, 
+                "date_time_recive": datetime.now()
                 }
         # "tape_of_delivery": tape_of_delivery 
         cached_value = cache.get(identifier)
@@ -233,6 +236,11 @@ class OrderStorageView(LoginRequiredMixin, View):
         if date_recive:
             date_recive = datetime.strptime(date_recive, "%Y-%m-%d")
             queryset = queryset.filter(date_recive__date=date_recive)
+
+        queryset = queryset.annotate(
+                    first_product_time=Min("products__date_time_recive"),
+                    last_product_time=Max("products__date_time_recive")
+                )
 
         context = {"order_list": queryset.order_by("-date_recive")}
         return render(request, "zwroty/return_order_list.html", context)

@@ -127,12 +127,11 @@ LOGIN_REDIRECT_URL = "/"
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "pl-pl"
+TIME_ZONE = "Europe/Warsaw"
 
 USE_I18N = True
-
+USE_L10N = True
 USE_TZ = True
 
 
