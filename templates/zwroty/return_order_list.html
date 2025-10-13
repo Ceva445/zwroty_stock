@@ -39,14 +39,14 @@
                         <td>{{ order.date_recive|date:"d-m-Y" }}</td>
                         <td>
                             {% if order.first_product_time %}
-                                {{ order.first_product_time|date:"H:i" }}
+                                {{ order.first_product_time|date:"d-m-Y H:i" }}
                             {% else %}
                                 -
                             {% endif %}
                         </td>
                         <td>
                             {% if order.last_product_time %}
-                                {{ order.last_product_time|date:"H:i" }}
+                                {{ order.last_product_time|date:"d-m-Y H:i" }}
                             {% else %}
                                 -
                             {% endif %}

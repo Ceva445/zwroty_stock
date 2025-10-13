@@ -258,7 +258,8 @@ class ReturnOrderDetailView(LoginRequiredMixin, View):
                 sku_hand: {product.sku.sku_hand}\n\
                     sku_ean: {product.actual_barcode}\n\
                         sku_deskript: {product.sku.name_of_product}\n\
-                            typ: {product.reasone.name}",
+                            typ: {product.reasone.name}\n\
+                                data przyjęcia: {product.date_time_recive.strftime('%d.%m.%Y %H:%M')}",
             product) 
                         
                 for product in order.products.all()]
