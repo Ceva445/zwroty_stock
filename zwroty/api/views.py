@@ -41,6 +41,6 @@ class WZApiView(APIView):
                 order_data["lines"].append(product_data)
             order_list.append(order_data)
 
-        orders.update(generate_xls_status=True)
+        #orders.update(generate_xls_status=True)
 
         return Response(order_list)

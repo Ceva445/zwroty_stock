@@ -1,25 +1,86 @@
 from django.contrib import admin
-
-from django.contrib import admin
 from .models import (
-    Shop, SkuInformation, 
-    Barcode, Product, 
-    ReasoneComment, ReturnOrder
-    )
+    Shop,
+    SkuInformation,
+    Barcode,
+    Product,
+    ReasoneComment,
+    ReturnOrder,
+)
 
+# ---------------- PRODUCT ----------------
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ("id", "sku", "quantity", "actual_barcode", "reasone")
+    search_fields = (
+        "actual_barcode",
+        "sku__sku_log",
+        "sku__name_of_product",
+    )
+    list_select_related = ("sku", "reasone")
+    autocomplete_fields = ("sku", "reasone")
+
+
+# ---------------- SKU ----------------
+@admin.register(SkuInformation)
+class SkuInformationAdmin(admin.ModelAdmin):
+    search_fields = ("sku_log", "name_of_product")
+
+
+# ---------------- SHOP ----------------
+@admin.register(Shop)
+class ShopAdmin(admin.ModelAdmin):
+    search_fields = ("shop_nr", "description")
+
+
+# ---------------- REASONE ----------------
+@admin.register(ReasoneComment)
+class ReasoneCommentAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
+
+
+# ---------------- BARCODE ----------------
+@admin.register(Barcode)
+class BarcodeAdmin(admin.ModelAdmin):
+    search_fields = ("barcode",)
+
+
+# ---------------- RETURN ORDER ----------------
+@admin.register(ReturnOrder)
 class ReturnOrderAdmin(admin.ModelAdmin):
     list_display = (
         "identifier",
-        "nr_order", 
-        "date_recive", 
-        "complite_status", 
+        "nr_order",
+        "shop",
+        "date_recive",
+        "complite_status",
         "generate_xls_status",
-        )
+    )
 
-# Register your models here
-admin.site.register(Shop)
-admin.site.register(SkuInformation)
-admin.site.register(Barcode)
-admin.site.register(Product)
-admin.site.register(ReasoneComment)
-admin.site.register(ReturnOrder, ReturnOrderAdmin)
+    list_select_related = ("shop", "user")
+
+    search_fields = (
+        "identifier",
+        "nr_order",
+        "shop__shop_nr",
+    )
+
+    list_filter = (
+        "complite_status",
+        "generate_xls_status",
+        "date_recive",
+    )
+
+    # 🔥 НАЙВАЖЛИВІШЕ — прибирає dropdown на 12470 Product
+    autocomplete_fields = ("products",)
+
+    # АБО якщо хочеш ще швидше:
+    # raw_id_fields = ("products",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("shop", "user").prefetch_related(
+            "products",
+            "products__sku",
+            "products__reasone",
+        )
