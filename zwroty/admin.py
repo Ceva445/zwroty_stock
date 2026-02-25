@@ -7,6 +7,8 @@ from .models import (
     ReasoneComment,
     ReturnOrder,
 )
+from rangefilter.filters import DateRangeFilter
+
 
 # ---------------- PRODUCT ----------------
 @admin.register(Product)
@@ -68,14 +70,38 @@ class ReturnOrderAdmin(admin.ModelAdmin):
     list_filter = (
         "complite_status",
         "generate_xls_status",
-        "date_recive",
+        ("date_recive", DateRangeFilter),
     )
 
-    # 🔥 НАЙВАЖЛИВІШЕ — прибирає dropdown на 12470 Product
     autocomplete_fields = ("products",)
 
-    # АБО якщо хочеш ще швидше:
-    # raw_id_fields = ("products",)
+    # ✅ Rejestracja akcji masowych
+    actions = [
+        "set_generate_xls_true",
+        "set_generate_xls_false",
+    ]
+
+    # -------------------------------------------------
+    # AKCJA 1 – ustaw generate_xls_status = True
+    # -------------------------------------------------
+    @admin.action(description="Ustaw generate_xls_status wyłączony (True)")
+    def set_generate_xls_true(self, request, queryset):
+        updated = queryset.update(generate_xls_status=True)
+        self.message_user(
+            request,
+            f"Zaktualizowano {updated} zamówień (generate_xls_status=True)"
+        )
+
+    # -------------------------------------------------
+    # AKCJA 2 – ustaw generate_xls_status = False
+    # -------------------------------------------------
+    @admin.action(description="Ustaw generate_xls_status nie wygenerowane (False)")
+    def set_generate_xls_false(self, request, queryset):
+        updated = queryset.update(generate_xls_status=False)
+        self.message_user(
+            request,
+            f"Zaktualizowano {updated} zamówień (generate_xls_status=False)"
+        )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
