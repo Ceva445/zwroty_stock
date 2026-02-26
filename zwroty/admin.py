@@ -6,6 +6,7 @@ from .models import (
     Product,
     ReasoneComment,
     ReturnOrder,
+    SkuInformationBarcode,
 )
 from rangefilter.filters import DateRangeFilter
 
@@ -47,6 +48,17 @@ class BarcodeAdmin(admin.ModelAdmin):
     search_fields = ("barcode",)
 
 
+# ---------------- SKU BARCODE ----------------
+@admin.register(SkuInformationBarcode)
+class SkuInformationBarcodeAdmin(admin.ModelAdmin):
+    list_display = ("sku_information", "barcode")
+    search_fields = (
+        "sku_information__sku_log",
+        "barcode__barcode",
+    )
+    list_select_related = ("sku_information", "barcode")
+
+    autocomplete_fields = ("sku_information", "barcode")
 # ---------------- RETURN ORDER ----------------
 @admin.register(ReturnOrder)
 class ReturnOrderAdmin(admin.ModelAdmin):
