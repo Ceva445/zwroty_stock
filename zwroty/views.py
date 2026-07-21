@@ -227,7 +227,7 @@ class OrderStorageView(LoginRequiredMixin, View):
         if identifier:
             queryset = queryset.filter(identifier__icontains=identifier)
         if position_nr:
-            queryset = queryset.filter(identifier__icontains=position_nr)
+            queryset = queryset.filter(position_nr__icontains=position_nr)
         if nr_order:
             queryset = queryset.filter(nr_order__icontains=nr_order)
         if status:
