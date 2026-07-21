@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "zwroty",
     "user",
     "crispy_forms",
+    "rangefilter",
 ]
 
 MIDDLEWARE = [
