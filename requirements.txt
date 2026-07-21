@@ -8,6 +8,7 @@ gunicorn
 python-decouple
 python-dotenv
 reportlab
+openpyxl
 sqlparse
 tqdm
 typing_extensions

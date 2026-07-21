@@ -9,3 +9,5 @@ supplier_sku_data.csv
 sku_barcode.json
 users.xls
 *.xlsx
+!wz_exsamle.xlsx
+wz_tmp/
