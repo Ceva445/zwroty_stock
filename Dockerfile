@@ -5,6 +5,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# LibreOffice — для конвертації xlsx -> pdf (wz_generator.convert_xlsx_to_pdf);
+# fonts-liberation/dejavu — коректний рендер польських діакритиків у PDF.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libreoffice-calc \
+        fonts-liberation \
+        fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
