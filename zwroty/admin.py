@@ -65,6 +65,7 @@ class ReturnOrderAdmin(admin.ModelAdmin):
     list_display = (
         "identifier",
         "nr_order",
+        "position_nr",
         "shop",
         "date_recive",
         "complite_status",
