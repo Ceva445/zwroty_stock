@@ -4,8 +4,8 @@
 та експорт у PDF). Тепер усе робиться тут:
 
 * для кожного замовлення — окремий ``.xlsx`` файл;
-* один спільний ``.pdf`` з усіма аркушами, де кожен аркуш повторюється
-  ``COPIES_PER_SHEET`` разів підряд (3 копії).
+* один спільний ``.pdf`` з усіма аркушами, де ВЕСЬ набір аркушів повторюється
+  ``COPIES_PER_SHEET`` разів (порядок 123 123 123, а не 111 222 333).
 
 Файли складаються у тимчасову теку ``wz_tmp/<batch_id>/`` разом із
 ``manifest.json``. Apps Script завантажує їх за токенами і після успіху
@@ -132,20 +132,31 @@ def build_order_workbook(order):
 
 
 def build_combined_workbook(orders):
-    """Один робочий зошит з усіма аркушами; кожен аркуш ×COPIES_PER_SHEET підряд."""
+    """Один робочий зошит з усіма аркушами, повтореними ×COPIES_PER_SHEET.
+
+    Порядок сторінок — цілими наборами: спочатку всі унікальні аркуші по разу,
+    потім увесь набір повторюється (123 123 123), а НЕ кожен аркуш тричі підряд
+    (111 222 333). Це важливо, коли замовлень/аркушів більше одного.
+    """
     wb = load_workbook(TEMPLATE_PATH)
     template_ws = wb[TEMPLATE_SHEET_NAME]
 
-    sheet_no = 0
+    # Спочатку збираємо впорядкований список сторінок (по одній на кожен chunk).
+    pages = []  # (order, chunk_index, chunk)
     for order in orders:
         chunks = list(_chunks(order["lines"], LINES_PER_SHEET)) or [[]]
         for chunk_index, chunk in enumerate(chunks):
-            for _copy in range(COPIES_PER_SHEET):
-                sheet_no += 1
-                ws = wb.copy_worksheet(template_ws)
-                ws.title = f"WZ_{sheet_no}"
-                _apply_page_setup(ws)
-                _fill_sheet(ws, order, chunk, chunk_index)
+            pages.append((order, chunk_index, chunk))
+
+    # Потім повторюємо ВЕСЬ набір COPIES_PER_SHEET разів → 123 123 123.
+    sheet_no = 0
+    for _copy in range(COPIES_PER_SHEET):
+        for order, chunk_index, chunk in pages:
+            sheet_no += 1
+            ws = wb.copy_worksheet(template_ws)
+            ws.title = f"WZ_{sheet_no}"
+            _apply_page_setup(ws)
+            _fill_sheet(ws, order, chunk, chunk_index)
 
     wb.remove(template_ws)  # прибираємо порожній шаблонний аркуш
     return wb
