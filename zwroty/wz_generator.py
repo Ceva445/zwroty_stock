@@ -4,8 +4,8 @@
 та експорт у PDF). Тепер усе робиться тут:
 
 * для кожного замовлення — окремий ``.xlsx`` файл;
-* один спільний ``.pdf`` з усіма аркушами, де ВЕСЬ набір аркушів повторюється
-  ``COPIES_PER_SHEET`` разів (порядок 123 123 123, а не 111 222 333).
+* один спільний ``.pdf``, де КОЖНА WZ (разом з усіма її аркушами) повторюється
+  ``COPIES_PER_SHEET`` разів поспіль, і лише потім починається наступна WZ.
 
 Файли складаються у тимчасову теку ``wz_tmp/<batch_id>/`` разом із
 ``manifest.json``. Apps Script завантажує їх за токенами і після успіху
@@ -132,31 +132,27 @@ def build_order_workbook(order):
 
 
 def build_combined_workbook(orders):
-    """Один робочий зошит з усіма аркушами, повтореними ×COPIES_PER_SHEET.
+    """Один робочий зошит з усіма WZ, кожна WZ повторена ×COPIES_PER_SHEET.
 
-    Порядок сторінок — цілими наборами: спочатку всі унікальні аркуші по разу,
-    потім увесь набір повторюється (123 123 123), а НЕ кожен аркуш тричі підряд
-    (111 222 333). Це важливо, коли замовлень/аркушів більше одного.
+    Повторюється ВСЯ WZ разом з усіма її аркушами, і лише потім починається
+    наступна WZ. Аркуші однієї WZ ніколи не «розриваються» копіями:
+
+    * WZ з аркушами [A, B]  ->  A B A B A B  (3 копії пари), далі наступна WZ;
+    * WZ з одним аркушем [A] ->  A A A.
     """
     wb = load_workbook(TEMPLATE_PATH)
     template_ws = wb[TEMPLATE_SHEET_NAME]
 
-    # Спочатку збираємо впорядкований список сторінок (по одній на кожен chunk).
-    pages = []  # (order, chunk_index, chunk)
+    sheet_no = 0
     for order in orders:
         chunks = list(_chunks(order["lines"], LINES_PER_SHEET)) or [[]]
-        for chunk_index, chunk in enumerate(chunks):
-            pages.append((order, chunk_index, chunk))
-
-    # Потім повторюємо ВЕСЬ набір COPIES_PER_SHEET разів → 123 123 123.
-    sheet_no = 0
-    for _copy in range(COPIES_PER_SHEET):
-        for order, chunk_index, chunk in pages:
-            sheet_no += 1
-            ws = wb.copy_worksheet(template_ws)
-            ws.title = f"WZ_{sheet_no}"
-            _apply_page_setup(ws)
-            _fill_sheet(ws, order, chunk, chunk_index)
+        for _copy in range(COPIES_PER_SHEET):          # уся WZ повторюється 3 рази
+            for chunk_index, chunk in enumerate(chunks):  # усі її аркуші поспіль
+                sheet_no += 1
+                ws = wb.copy_worksheet(template_ws)
+                ws.title = f"WZ_{sheet_no}"
+                _apply_page_setup(ws)
+                _fill_sheet(ws, order, chunk, chunk_index)
 
     wb.remove(template_ws)  # прибираємо порожній шаблонний аркуш
     return wb
@@ -190,11 +186,16 @@ def convert_xlsx_to_pdf(xlsx_path, out_dir):
 
 # --- Оркестрація batch -------------------------------------------------------
 
-def generate_wz_batch(orders):
+def generate_wz_batch(orders, order_ids=None):
     """Генерує всі файли й повертає ``(batch_id, files)``.
 
     ``files`` — список ``{"token", "filename", "path", "type"}``; окрім того
     у теці зберігається ``manifest.json``.
+
+    ``order_ids`` — id замовлень (``ReturnOrder``), включених у batch. Вони
+    зберігаються в manifest, щоб confirm-ендпоінт після успішного завантаження
+    міг проставити цим замовленням ``generate_xls_status=True`` (не друкувати
+    їх повторно). Для mock-даних порожній список — БД не чіпається.
     """
     batch_id = uuid.uuid4().hex
     batch_dir = os.path.join(WZ_TMP_ROOT, batch_id)
@@ -225,11 +226,31 @@ def generate_wz_batch(orders):
         {"token": uuid.uuid4().hex, "filename": pdf_name, "path": final_pdf, "type": "pdf"}
     )
 
-    manifest = {"batch_id": batch_id, "created": datetime.now().isoformat(), "files": files}
+    manifest = {
+        "batch_id": batch_id,
+        "created": datetime.now().isoformat(),
+        "order_ids": list(order_ids or []),
+        "files": files,
+    }
     with open(os.path.join(batch_dir, "manifest.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
 
     return batch_id, files
+
+
+def batch_order_ids(batch_id):
+    """Повертає id замовлень, включених у batch (з manifest), або ``[]``.
+
+    Читати ТРЕБА до ``delete_batch`` — воно видаляє теку разом з manifest.
+    """
+    batch_dir = _batch_dir(batch_id)
+    if not batch_dir:
+        return []
+    manifest_path = os.path.join(batch_dir, "manifest.json")
+    if not os.path.isfile(manifest_path):
+        return []
+    with open(manifest_path, encoding="utf-8") as fh:
+        return json.load(fh).get("order_ids", [])
 
 
 def _batch_dir(batch_id):

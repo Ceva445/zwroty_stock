@@ -56,13 +56,14 @@ class WZGenerateView(APIView):
         wz_generator.cleanup_stale_batches()
         if request.query_params.get("mock"):
             orders = MOCK_ORDERS
+            order_ids = []
         else:
-            orders, _ids = _orders_from_db()
+            orders, order_ids = _orders_from_db()
 
         if not orders:
             return Response({"batch_id": None, "files": []})
 
-        batch_id, files = wz_generator.generate_wz_batch(orders)
+        batch_id, files = wz_generator.generate_wz_batch(orders, order_ids)
         payload = [
             {"token": f["token"], "filename": f["filename"], "type": f["type"]}
             for f in files
@@ -82,13 +83,26 @@ class WZDownloadView(APIView):
 
 
 class WZConfirmView(APIView):
-    """Викликається Apps Script після успішного завантаження — видаляє файли."""
+    """Викликається Apps Script після успішного завантаження файлів.
+
+    Тільки тут (після підтвердженого завантаження) замовлення позначаються як
+    надруковані (``generate_xls_status=True``), щоб не потрапляти в наступну
+    генерацію. Якщо завантаження не вдалось — confirm не викликається, статус
+    лишається ``False`` і WZ можна згенерувати повторно.
+    """
 
     def post(self, request, batch_id):
+        # прочитати id ДО видалення теки (delete_batch знищує manifest)
+        order_ids = wz_generator.batch_order_ids(batch_id)
         deleted = wz_generator.delete_batch(batch_id)
         if not deleted:
             return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response({"status": "deleted"})
+        marked = 0
+        if order_ids:
+            marked = ReturnOrder.objects.filter(id__in=order_ids).update(
+                generate_xls_status=True
+            )
+        return Response({"status": "deleted", "marked": marked})
 
 
 class WZApiView(APIView):
