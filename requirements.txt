@@ -1,7 +1,9 @@
 asgiref
 colorama
 dj-database-url
-Django
+# Pinned to the 5.2 LTS line: 6.0 dropped django.utils.cache.cc_delim_re, which
+# the installed DRF still imports (unpinned rebuild pulled Django 6.x -> ImportError).
+Django>=5.2,<6.0
 Pillow
 psycopg2-binary
 gunicorn
