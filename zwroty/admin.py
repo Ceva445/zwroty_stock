@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.admin.views.main import ChangeList
+from django.db.models import Q
 from .models import (
     Shop,
     SkuInformation,
@@ -9,6 +11,31 @@ from .models import (
     SkuInformationBarcode,
 )
 from rangefilter.filters import DateRangeFilter
+
+
+# Semicolon-separated multi-value search for the ReturnOrder changelist.
+# The three GET keys carry raw "a;b;c" strings; the custom ChangeList drops
+# them from lookup validation so the admin doesn't treat them as ORM lookups.
+RETURNORDER_SEARCH_KEYS = ("s_identifier", "s_nr_order", "s_position_nr")
+
+
+def _split_multi(raw):
+    """`"12; 34 ;;56"` -> `["12", "34", "56"]` (trimmed, blanks dropped)."""
+    return [part.strip() for part in (raw or "").split(";") if part.strip()]
+
+
+class ReturnOrderChangeList(ChangeList):
+    """Keeps our custom search keys out of Django's lookup machinery."""
+
+    def get_filters_params(self, params=None):
+        lookup_params = super().get_filters_params(params)
+        for key in RETURNORDER_SEARCH_KEYS:
+            lookup_params.pop(key, None)
+        return lookup_params
+
+    def get_queryset(self, request, exclude_parameters=None):
+        qs = super().get_queryset(request, exclude_parameters=exclude_parameters)
+        return self.model_admin.apply_multi_search(request, qs)
 
 
 # ---------------- PRODUCT ----------------
@@ -74,11 +101,35 @@ class ReturnOrderAdmin(admin.ModelAdmin):
 
     list_select_related = ("shop", "user")
 
-    search_fields = (
-        "identifier",
-        "nr_order",
-        "shop__shop_nr",
-    )
+    # Search is provided by three dedicated ";"-multi fields (see change_list
+    # template + apply_multi_search below), not by the default admin search box.
+    change_list_template = "admin/zwroty/returnorder/change_list.html"
+
+    def get_changelist(self, request, **kwargs):
+        return ReturnOrderChangeList
+
+    def apply_multi_search(self, request, qs):
+        # identifier (BigInteger) — exact match on any of the given numbers.
+        raw_ident = _split_multi(request.GET.get("s_identifier"))
+        if raw_ident:
+            ids = [int(v) for v in raw_ident if v.lstrip("-").isdigit()]
+            qs = qs.filter(identifier__in=ids) if ids else qs.none()
+
+        # nr_order (Char) — partial match, OR across the given values.
+        orders = _split_multi(request.GET.get("s_nr_order"))
+        if orders:
+            cond = Q()
+            for value in orders:
+                cond |= Q(nr_order__icontains=value)
+            qs = qs.filter(cond)
+
+        # position_nr (Integer) — exact match on any of the given numbers.
+        raw_pos = _split_multi(request.GET.get("s_position_nr"))
+        if raw_pos:
+            positions = [int(v) for v in raw_pos if v.lstrip("-").isdigit()]
+            qs = qs.filter(position_nr__in=positions) if positions else qs.none()
+
+        return qs
 
     list_filter = (
         "complite_status",

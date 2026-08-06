@@ -1,0 +1,46 @@
+{% extends "admin/change_list.html" %}
+
+{# Replace the single admin search box with three ";"-multi-value fields
+   (Identifier / Nr order / Position nr). AND between fields, OR within a field.
+   Filtering happens in ReturnOrderAdmin.apply_multi_search. #}
+{% block search %}
+<div id="changelist-multi-search" class="module" style="padding:12px 14px;margin-bottom:12px;border-radius:6px;">
+  <form method="get" id="multi-search-form"
+        style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin:0;">
+    {# preserve active list filters / ordering; reset paging (p) on new search #}
+    {% for key, value in request.GET.items %}
+      {% if key != 's_identifier' and key != 's_nr_order' and key != 's_position_nr' and key != 'p' %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endif %}
+    {% endfor %}
+
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <label for="s_identifier" style="font-weight:600;">Identifier</label>
+      <input type="text" id="s_identifier" name="s_identifier"
+             value="{{ request.GET.s_identifier }}" placeholder="123;456" size="18">
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <label for="s_nr_order" style="font-weight:600;">Nr order</label>
+      <input type="text" id="s_nr_order" name="s_nr_order"
+             value="{{ request.GET.s_nr_order }}" placeholder="A99;B12" size="18">
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <label for="s_position_nr" style="font-weight:600;">Position nr</label>
+      <input type="text" id="s_position_nr" name="s_position_nr"
+             value="{{ request.GET.s_position_nr }}" placeholder="7;8;9" size="12">
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button type="submit" class="button" style="height:2.2em;">Szukaj</button>
+      <a href="{{ request.path }}" class="button" style="height:2.2em;line-height:2.2em;background:#6c757d;">Wyczyść</a>
+    </div>
+  </form>
+
+  <p class="help" style="margin:8px 0 0;">
+    Wiele wartości oddziel średnikiem <code>;</code> (OR w obrębie pola). Pola łączone są przez AND.
+    Identifier i Position nr — dopasowanie dokładne; Nr order — częściowe.
+  </p>
+</div>
+{% endblock %}
